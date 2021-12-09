@@ -17,3 +17,4 @@ app.get("/input",(req,res)=>{
     console.log(req.query)
 })
 app.listen(10414)
+//something go wrong
