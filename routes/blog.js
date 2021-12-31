@@ -143,6 +143,9 @@ var detail=function (req,res) {
   else if(req.body.sRole==3){   //处理登录
       var imgur2="";
       var query3={name:req.body.user,password:req.body.password};
+      var search=req.body.search
+      console.log(req.body)
+      console.log("+++++++")
       async.parallel({   //parallel函数是并行执行多个函数，每个函数都是立即执行，不需要等待其它函数先执行
           getContentAll:function (callback) {
               content.Content.find(function (err, docs) {
@@ -161,6 +164,15 @@ var detail=function (req,res) {
                       callback(null, docs)
                   }
               });
+          },
+          getSearch: function (callback) {
+            content.Content.find({"name":search},function (err, docs) {
+                if (err) {
+                    res.render('error');
+                } else {
+                    callback(null, docs)
+                }
+            });
           },
           getImgUrl:function (callback) {
               user.User.find(query3,function (err, docs) {
