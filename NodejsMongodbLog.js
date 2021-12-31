@@ -1,27 +1,126 @@
-const express = require("express")
-const app = express()
-const mongoose = require('mongoose');
-const ejs = require('ejs')
-mongoose.connect('mongodb://172.21.2.236:27017/190110910414');
-const schema={
-    name:String,
-    age:Number,
-    hobby:String,
-    health:String
-}
-const mydata = mongoose.model('cats1', schema);
-// const kitty = new Cat({ name: 'Zildjian2' });
-// kitty.save()
-app.use('/',express.static('public'))
-app.get("/input",(req,res)=>{
-    //res.send(req.query)
-    console.log(req.query)
-    const kitty = new mydata({ name: req.query.first,health:req.query.second });
-    kitty.save()
-    // ejs.renderFile(filename, data, options, function(err, str){
-    //     // str => 输出渲染后的 HTML 字符串
-    // });
-    ejs.renderFile("result.html",{returnVAl:"success"}<{req,res})
-        res.send(str)
-})
+//mongoose.connect('mongodb://172.21.2.236:27017/190110910414');
+const express = require('express');
+const path = require('path');
+const favicon = require('serve-favicon');
+const logger = require('morgan');
+const session=require("express-session");
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const ueditor = require("ueditor");
+const multipart = require('connect-multiparty');
+const multipartMiddleware = multipart();
+
+
+
+var index = require('./routes/index');
+var blog = require('./routes/blog');
+var git = require('./routes/git');
+var contact = require('./routes/contact');
+var user=require('./routes/userCenter');
+var blogEdit=require('./routes/blogEdit');
+
+
+var app = express();
+
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'html');
+app.engine('html',require('ejs').__express);
+
+// uncomment after placing your favicon in /public
+//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
+app.use(logger('dev'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+
+
+app.use("/ueditor", ueditor(path.join(__dirname, 'public'), function (req, res, next) {
+// ueditor 客户发起上传图片请求
+  console.log(".....................................");
+  if(req.query.action === 'uploadimage'){
+
+    // 这里你可以获得上传图片的信息
+    var foo = req.ueditor;
+    // console.log(foo.filename); // exp.png
+    // console.log(foo.encoding); // 7bit
+    // console.log(foo.mimetype); // image/png
+
+    // 下面填写你要把图片保存到的路径 （ 以 path.join(__dirname, 'public') 作为根路径）
+    var img_url = '/images/ueditor';
+    res.ue_up(img_url); //你只要输入要保存的地址 。保存操作交给ueditor来做
+  }
+  //  客户端发起图片列表请求
+  else if (req.query.action === 'listimage'){
+    var dir_url = '/images/ueditor'; // 要展示给客户端的文件夹路径
+    res.ue_list(dir_url) // 客户端会列出 dir_url 目录下的所有图片
+  }
+  // 客户端发起其它请求
+  else {
+    res.setHeader('Content-Type', 'application/json');
+    // 这里填写 ueditor.config.json 这个文件的路径
+    res.redirect('/ueditor/nodejs/config.json')
+  }
+}));
+
+
+
+
+app.use(multipart({uploadDir:'public/images/touxiang' }));
+app.use(session({
+  secret: '12345',
+  cookie: {
+    secret: true,
+    expires: false
+  },
+  resave: true,
+  saveUninitialized: true
+}));
+
+//配置页面路由
+app.use('/', index);
+app.use('/', git);
+// app.use('/', blog);
+app.get("/blog",blog.blog1);
+app.get("/blog/user/login",blog.login);
+app.get("/loginError",blog.loginError);
+app.use('/', contact);
+app.all('/blog/detail',multipartMiddleware,blog.detail);
+app.get('/blog/user/reg',blog.reg);
+app.get('/blog/user',user.user);
+app.post('/blog/user',user.userUpdate);
+app.get('/blogEdits',blogEdit.blog_edit);
+app.post('/blogEdits',blogEdit.blog_updateBlog)
+app.post('/blog/fwNum',blog.fwNum)
+app.get('/blog/detail/Update',blogEdit.updateC)
+app.all('/blog/detail/Article',blog.readAll)
+
+//使用模块
+
+
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  var err = new Error('Not Found');
+  err.status = 404;
+  next(err);
+});
+
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  // render the error page
+  res.status(err.status || 500);
+  res.render('error');
+});
+
+
+
+module.exports = app;
+
 app.listen(10414)
